@@ -2,11 +2,13 @@
 
 You do not need to know Python for this. You need to know *what you want the agent to do* — your AI coding assistant (Claude, ChatGPT, whatever you normally use) will write the Python. You already know JS, so you'll be able to read most of what it writes; when you hit something unfamiliar, ask your assistant to explain it by comparing it to the JS equivalent.
 
+Today you'll work in **two separate projects**. `agent-workshop` (this repo) is for learning how the loop and tools work — you won't add anything to it. In Part 2, you'll spin up a second, brand-new project for the actual agent you build, with only the tools that agent needs. More on why below.
+
 These instructions assume a Mac, and that you've already cloned this repo into `Documents/dev/agent-workshop`.
 
 ---
 
-## Part 1 — Setup 
+## Part 1 — Setup
 
 Do these in order. If you get stuck on any step, flag a facilitator rather than debugging alone — we'd rather unblock you in 30 seconds than have you lose 10 minutes.
 
@@ -22,11 +24,6 @@ Macs ship with an old system Python (3.9) that's too old for the SDK we're using
 
 ```bash
 brew install python@3.12
-```
-
-If that says `brew: command not found`, install Homebrew first, then rerun the line above:
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 Confirm it worked:
@@ -256,7 +253,19 @@ if __name__ == "__main__":
     print(answer)
 ```
 
-### ▶️ Step 8. Run it
+### 👀 Step 8. Read the code — don't skip this
+
+Before running it, spend some time actually reading `agent_loop.py` top to bottom. You don't need to understand every line — just get the gist:
+
+- Where are the tools defined?
+- Where's the actual loop?
+- Where does it decide it's done and stop?
+
+Ask your AI coding assistant to explain any chunk you don't follow — paste a section and ask something like *"explain this to me like I know JavaScript."* This is the single best habit for today: read first, ask questions, then run it.
+
+**Bonus challenge:** find the line near the bottom that says `input("Ask your agent something: ")` and change what happens when the script launches — e.g., hardcode a specific question instead of asking, or change the prompt text itself. Small, contained edit, but it confirms you understand exactly where user input enters the loop before you build a new agent from scratch in Part 2.
+
+### ▶️ Step 9. Run it
 
 In the terminal (venv still active):
 
@@ -274,29 +283,35 @@ If you see the agent print out `[step 1] agent wants to call: ...` lines and the
 
 **If something breaks:** first check for `(venv)` at the start of your prompt — if it's missing, run `source venv/bin/activate` again. Then copy the *entire* error message (not just the last line) and paste it to your AI coding assistant along with "I'm running this Python script and got this error, what's wrong?" It's usually one of: venv not activated, key not set, or a typo from copy-pasting.
 
-### 👀 Step 9. Read the code — don't skip this
-
-Before moving on, spend some time actually reading `agent_loop.py` top to bottom. You don't need to understand every line — just get the gist:
-
-- Where are the tools defined?
-- Where's the actual loop?
-- Where does it decide it's done and stop?
-
-Ask your AI coding assistant to explain any chunk you don't follow — paste a section and ask something like *"explain this to me like I know JavaScript."* This is the single best habit for today: read first, ask questions, then extend.
-
-**Bonus challenge:** find the line near the bottom that says `input("Ask your agent something: ")` and change what happens when the script launches — e.g., hardcode a specific question instead of asking, or change the prompt text itself. Small, contained edit, but it confirms you know exactly where user input enters the loop before you start adding your own tools in Part 2.
-
 ---
 
-## Part 2 — Build Your Own Agent 
+## Part 2 — Build Your Own Agent
 
-Pick one of the three options below. All of them start from the same `agent_loop.py` file you just got running.
+Real agents don't usually get built by piling every tool into one growing file. A well-built agent has a *lean, specific* toolset — just what its job needs, nothing extra. Every tool you register gets sent to the model on every single call, whether it's used or not, so an agent carrying tools it doesn't need is slower, pricier, and more likely to misfire.
+
+`agent-workshop` was for learning the mechanics. Now you'll build the real thing — a new, purpose-built agent, in its own project, with an AI coding assistant writing the code from scratch.
+
+### First, start a new project
+
+1. Pick a name for your agent (e.g. `study-buddy-agent`) and create a **new folder outside `agent-workshop`** — e.g. `~/Documents/dev/study-buddy-agent`. Open it in a new VS Code window.
+2. Open its integrated terminal and set up a fresh venv, same as before:
+   ```bash
+   python3.12 -m venv venv
+   source venv/bin/activate
+   pip install google-genai
+   ```
+3. Set your key again — environment variables don't cross between projects (or terminal windows):
+   ```bash
+   export GEMINI_API_KEY="paste-your-key-here"
+   ```
+
+### Then, pick your agent idea
 
 ### Option A: Study Buddy Agent
 
 An agent that quizzes you on flashcards and tracks how you're doing.
 
-**Suggested tools to add:**
+**Tools it needs:**
 - `get_flashcard(topic)` — returns a random question/answer pair from a small hardcoded dictionary (you pick the topic and content — could be vocab, historical dates, code syntax, anything)
 - `check_answer(question, user_answer)` — compares the user's answer to the correct one and returns feedback (exact match is fine to start)
 
@@ -310,7 +325,7 @@ An agent that quizzes you on flashcards and tracks how you're doing.
 
 An agent that helps rough out a simple trip between two cities.
 
-**Suggested tools to add:**
+**Tools it needs:**
 - `get_distance(city_a, city_b)` — a small hardcoded lookup table of distances between 5-6 cities you choose (no need for a real maps API)
 - `suggest_packing_list(weather)` — takes a category like `"hot"`, `"cold"`, or `"rainy"` and returns a list of suggested items
 
@@ -322,13 +337,26 @@ An agent that helps rough out a simple trip between two cities.
 
 ### Option C: Build Your Own Idea
 
-Use the same scaffold, but invent your own concept. To keep it scoped for the time you have, your agent must satisfy:
+Invent your own concept. To keep it scoped for the time you have, your agent must satisfy:
 
-- **At least one brand-new custom tool** (not `calculate` or `get_current_time`)
+- **At least one custom tool** built specifically for this agent's job
 - **The agent needs 2+ loop iterations to answer at least one good test question** (i.e., it should call a tool, then either call another tool or need the result before it can respond — not just answer from the first message)
 - **You've tested it with at least 3 different questions**, including one that shouldn't need any tools at all (to confirm the agent still answers directly when it should)
 
 Some ideas if you want a starting point: a recipe/pantry agent, a D&D dice-roller/character-sheet agent, a unit-converter-plus-currency agent, a "what should I watch tonight" agent with a small hardcoded movie list.
+
+### Now, have your coding agent build it
+
+Tell your AI coding assistant what you want the agent to do, and that you're using the `google-genai` Python SDK's Interactions API — point it at `agent_loop.py` in `agent-workshop` as the loop pattern to follow. You don't need to spec out the tools yourself; talk through what the agent needs and let your assistant help you figure out the right ones.
+
+Something like:
+
+> *"I want to build an agent that quizzes me on flashcards and tracks my score. I'm using the google-genai Python SDK's Interactions API — follow the same Reason/Act/Observe loop as `agent_loop.py` in my `agent-workshop` repo. What tools do you think it needs?" or you can tell it what tools you want if you already know*
+
+Then run it the same way as before, from inside this new project's terminal:
+```bash
+python study_buddy_agent.py
+```
 
 ---
 
@@ -336,7 +364,7 @@ Some ideas if you want a starting point: a recipe/pantry agent, a D&D dice-rolle
 
 You're directing, not typing every line yourself. A few things that make this go smoothly:
 
-1. **Describe the tool in plain English, and point at the pattern.** Something like: *"Add a new tool function to `agent_loop.py` called `get_distance` that takes two city names and returns the distance in miles from a small hardcoded dictionary. Follow the same style as `calculate()` and `get_current_time()` — same docstring style, same dict return shape, and add matching entries to `TOOL_FUNCTIONS` and `TOOL_DECLARATIONS`."*
+1. **Describe the tools you want, and point at the pattern.** Reference `agent-workshop`'s loop structure explicitly rather than assuming your assistant will infer it — spell out the Reason → Act → Observe shape, or just say "match the loop in agent_loop.py from the agent-workshop repo."
 2. **Paste back the whole error**, not just the last line. Python error messages ("tracebacks") read bottom-to-top and the real cause is often several lines up — your assistant needs the whole thing.
 3. **Ask for JS comparisons when syntax is unfamiliar.** Python dictionaries ≈ JS objects. List comprehensions ≈ `.map()`/`.filter()`. `**kwargs` ≈ spreading an object into named params. Just ask: *"explain this like I know JavaScript."*
 4. **Change one thing, test, then change the next thing.** Don't ask for five tools at once — add one, run it, confirm it works, then move to the next. Small steps are much easier to debug than a pile of new code all at once.
@@ -344,7 +372,7 @@ You're directing, not typing every line yourself. A few things that make this go
 
 ---
 
-## Part 4 — Share 
+## Part 4 — Share
 
 Be ready to show the group:
 - What your agent does (one sentence)
